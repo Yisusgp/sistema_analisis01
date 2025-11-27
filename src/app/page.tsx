@@ -12,7 +12,7 @@ import {
   EspacioMapeo,
   RegistroUsoStatus,
 } from "@/types/app";
-import { fetchRegistros } from "@/components/fetchRegistros";
+import { fetchAllRegistros, fetchRegistros } from "@/components/fetchRegistros";
 import { sendEmailNotification } from "@/components/send_email";
 
 // Perfil + rol
@@ -183,118 +183,122 @@ useEffect(() => {
     }
   };
 
-  const handleApproveReservation = async (idRegistro: number) => {
-    try {
-      const registro = registros.find((r) => r.ID_Registro === idRegistro);
+const handleApproveReservation = async (idRegistro: number) => {
+  try {
+    const registro = registros.find((r) => r.ID_Registro === idRegistro);
 
-      const { error } = await supabase
-        .from("registro_uso")
-        .update({ estado_final: "Confirmado" })
-        .eq("id_registro", idRegistro);
+    const { error } = await supabase
+      .from("registro_uso")
+      .update({ estado_final: "Confirmado" })
+      .eq("id_registro", idRegistro);
 
-      if (error) {
-        toast.error(`Error al aprobar: ${error.message}`);
-        return;
-      }
-
-      if (user && registro) {
-        // Enviar email de confirmación
-        await sendEmailNotification({
-          tipo: "confirmacion",
-          email: registro.correo_electronico || user.email,
-          nombre: registro.Nombre_Usuario || "Usuario",
-          nombreEspacio: registro.Nombre_Espacio,
-          id_registro: registro.ID_Registro,
-        });
-
-        const updatedRegistros = await fetchRegistros(user);
-        setRegistros(updatedRegistros);
-        toast.success("Reserva Confirmada exitosamente.");
-      }
-    } catch (err) {
-      console.error("Error en handleApproveReservation:", err);
-      toast.error("Error desconocido al aprobar.");
+    if (error) {
+      toast.error(`Error al aprobar: ${error.message}`);
+      return;
     }
-  };
 
-  const handleRejectReservation = async (
-    idRegistro: number,
-    reason: string,
-  ) => {
-    try {
-      const registro = registros.find((r) => r.ID_Registro === idRegistro);
+    if (user && registro) {
+      // ✅ Espera el email sin bloquear
+      sendEmailNotification({
+        tipo: "confirmacion",
+        email: registro.correo_electronico || user.email,
+        nombre: registro.Nombre_Usuario || "Usuario",
+        nombreEspacio: registro.Nombre_Espacio,
+        id_registro: registro.ID_Registro,
+      }).catch((err) => console.error("Error enviando email:", err));
 
-      const { error } = await supabase
-        .from("registro_uso")
-        .update({
-          estado_final: "Rechazado",
-          observaciones: reason,
-        })
-        .eq("id_registro", idRegistro);
-
-      if (error) {
-        toast.error(`Error al rechazar: ${error.message}`);
-        return;
-      }
-
-      if (user && registro) {
-        // Enviar email de rechazo
-        await sendEmailNotification({
-          tipo: "rechazo",
-          email: registro.correo_electronico || user.email,
-          nombre: registro.Nombre_Usuario || "Usuario",
-          nombreEspacio: registro.Nombre_Espacio,
-          motivo: reason,
-          id_registro: registro.ID_Registro,
-        });
-
-        const updatedRegistros = await fetchRegistros(user);
-        setRegistros(updatedRegistros);
-        toast.success("Reserva Rechazada exitosamente.");
-      }
-    } catch (err) {
-      console.error("Error en handleRejectReservation:", err);
-      toast.error("Error desconocido al rechazar.");
+      // Actualizar registro primero
+      const updatedRegistros = await fetchAllRegistros();
+      setRegistros(updatedRegistros);
+      toast.success("Reserva Confirmada exitosamente.");
     }
-  };
+  } catch (err) {
+    console.error("Error en handleApproveReservation:", err);
+    toast.error("Error desconocido al aprobar.");
+  }
+};
 
-  const handleDeleteReservation = async (idRegistro: number) => {
-    try {
-      const registro = registros.find((r) => r.ID_Registro === idRegistro);
+const handleRejectReservation = async (
+  idRegistro: number,
+  reason: string,
+) => {
+  try {
+    const registro = registros.find((r) => r.ID_Registro === idRegistro);
 
-      const { error } = await supabase
-        .from("registro_uso")
-        .update({
-          estado_final: "Cancelado",
-          observaciones: "Cancelación por emergencia",
-        })
-        .eq("id_registro", idRegistro);
+    const { error } = await supabase
+      .from("registro_uso")
+      .update({
+        estado_final: "Rechazado",
+        observaciones: reason,
+      })
+      .eq("id_registro", idRegistro);
 
-      if (error) {
-        toast.error(`Error al cancelar: ${error.message}`);
-        return;
-      }
-
-      if (user && registro) {
-        // Enviar email de cancelación
-        await sendEmailNotification({
-          tipo: "cancelacion",
-          email: registro.correo_electronico || user.email,
-          nombre: registro.Nombre_Usuario || "Usuario",
-          nombreEspacio: registro.Nombre_Espacio,
-          motivo: "Cancelación por emergencia",
-          id_registro: registro.ID_Registro,
-        });
-
-        const updatedRegistros = await fetchRegistros(user);
-        setRegistros(updatedRegistros);
-        toast.success("Registro cancelado exitosamente.");
-      }
-    } catch (err) {
-      console.error("Error en handleDeleteReservation:", err);
-      toast.error("Error desconocido al cancelar.");
+    if (error) {
+      toast.error(`Error al rechazar: ${error.message}`);
+      return;
     }
-  };
+
+    if (user && registro) {
+      // ✅ Espera el email sin bloquear
+      sendEmailNotification({
+        tipo: "rechazo",
+        email: registro.correo_electronico || user.email,
+        nombre: registro.Nombre_Usuario || "Usuario",
+        nombreEspacio: registro.Nombre_Espacio,
+        motivo: reason,
+        id_registro: registro.ID_Registro,
+      }).catch((err) => console.error("Error enviando email:", err));
+
+      // Actualizar registro primero
+      const updatedRegistros = await fetchAllRegistros();
+      setRegistros(updatedRegistros);
+      toast.success("Reserva Rechazada exitosamente.");
+    }
+  } catch (err) {
+    console.error("Error en handleRejectReservation:", err);
+    toast.error("Error desconocido al rechazar.");
+  }
+};
+
+const handleDeleteReservation = async (idRegistro: number) => {
+  try {
+    const registro = registros.find((r) => r.ID_Registro === idRegistro);
+
+    const { error } = await supabase
+      .from("registro_uso")
+      .update({
+        estado_final: "Cancelado",
+        observaciones: "Cancelación por emergencia",
+      })
+      .eq("id_registro", idRegistro);
+
+    if (error) {
+      toast.error(`Error al cancelar: ${error.message}`);
+      return;
+    }
+
+    if (user && registro) {
+      // ✅ Espera el email sin bloquear
+      sendEmailNotification({
+        tipo: "cancelacion",
+        email: registro.correo_electronico || user.email,
+        nombre: registro.Nombre_Usuario || "Usuario",
+        nombreEspacio: registro.Nombre_Espacio,
+        motivo: "Cancelación por emergencia",
+        id_registro: registro.ID_Registro,
+      }).catch((err) => console.error("Error enviando email:", err));
+
+      // Actualizar registro primero
+      const updatedRegistros = await fetchAllRegistros();
+      setRegistros(updatedRegistros);
+      toast.success("Registro cancelado exitosamente.");
+    }
+  } catch (err) {
+    console.error("Error en handleDeleteReservation:", err);
+    toast.error("Error desconocido al cancelar.");
+  }
+};
+
 
   if (loading) {
     return (
