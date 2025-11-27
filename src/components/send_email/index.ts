@@ -20,55 +20,26 @@ export const sendEmailNotification = async ({
   const templates = {
     confirmacion: {
       subject: "✅ Tu reserva ha sido confirmada",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #28a745;">¡Hola ${nombre}!</h2>
-          <p>Tu reserva ha sido <strong>confirmada exitosamente</strong>.</p>
-          <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>Espacio:</strong> ${nombreEspacio || "No especificado"}</p>
-            <p><strong>Registro ID:</strong> ${id_registro || "N/A"}</p>
-          </div>
-          <p>Puedes proceder con tu uso del espacio.</p>
-        </div>
-      `,
+      html: `<div style="font-family: Arial, sans-serif;"><h2>¡Hola ${nombre}!</h2><p>Tu reserva en <strong>${nombreEspacio}</strong> ha sido confirmada.</p></div>`,
     },
     rechazo: {
       subject: "❌ Tu reserva ha sido rechazada",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #dc3545;">Hola ${nombre},</h2>
-          <p>Tu reserva ha sido <strong>rechazada</strong>.</p>
-          <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
-            <p><strong>Motivo:</strong> ${motivo || "No especificado"}</p>
-            <p><strong>Registro ID:</strong> ${id_registro || "N/A"}</p>
-          </div>
-        </div>
-      `,
+      html: `<div style="font-family: Arial, sans-serif;"><h2>Hola ${nombre}</h2><p>Tu reserva ha sido rechazada. Motivo: ${motivo}</p></div>`,
     },
     cancelacion: {
-      subject: "⚠️ Tu reserva ha sido cancelada por emergencia",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #ff9800;">Hola ${nombre},</h2>
-          <p>Tu reserva ha sido <strong>cancelada por emergencia</strong>.</p>
-          <div style="background: #ffe4e1; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ff6347;">
-            <p><strong>Motivo:</strong> ${motivo || "No especificado"}</p>
-            <p><strong>Espacio:</strong> ${nombreEspacio || "No especificado"}</p>
-            <p><strong>Registro ID:</strong> ${id_registro || "N/A"}</p>
-          </div>
-        </div>
-      `,
+      subject: "⚠️ Tu reserva ha sido cancelada",
+      html: `<div style="font-family: Arial, sans-serif;"><h2>Hola ${nombre}</h2><p>Tu reserva ha sido cancelada por emergencia.</p></div>`,
     },
   };
 
   try {
     const template = templates[tipo];
 
+    console.log("📨 Enviando email a:", email);
+
     const response = await fetch("/api/send-email", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email,
         subject: template.subject,
@@ -76,20 +47,19 @@ export const sendEmailNotification = async ({
       }),
     });
 
+    console.log("Respuesta status:", response.status);
+    const data = await response.json();
+    console.log("Respuesta data:", data);
+
     if (!response.ok) {
-      try {
-        const errorData = await response.json();
-        console.error("Error enviando email:", errorData);
-      } catch {
-        console.error("Error enviando email - respuesta no es JSON");
-      }
+      console.error("Error:", data);
       return false;
     }
 
-    console.log("Email enviado exitosamente");
+    console.log("✅ Email enviado");
     return true;
   } catch (err) {
-    console.error("Error en sendEmailNotification:", err);
+    console.error("❌ Error:", err);
     return false;
   }
 };
