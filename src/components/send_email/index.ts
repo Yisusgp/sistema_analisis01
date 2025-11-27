@@ -77,7 +77,12 @@ export const sendEmailNotification = async ({
     });
 
     if (!response.ok) {
-      console.error("Error enviando email:", await response.text());
+      try {
+        const errorData = await response.json();
+        console.error("Error enviando email:", errorData);
+      } catch {
+        console.error("Error enviando email - respuesta no es JSON");
+      }
       return false;
     }
 

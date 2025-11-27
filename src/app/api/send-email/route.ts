@@ -6,6 +6,13 @@ export async function POST(request: Request) {
   try {
     const { email, subject, html } = await request.json();
 
+    if (!email || !subject || !html) {
+      return Response.json(
+        { error: "Faltan campos requeridos" },
+        { status: 400 },
+      );
+    }
+
     const response = await resend.emails.send({
       from: "noreply@tudominio.com",
       to: email,
@@ -21,10 +28,10 @@ export async function POST(request: Request) {
     }
 
     return Response.json({ success: true, data: response.data });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Error en API send-email:", err);
     return Response.json(
-      { error: "Error interno del servidor" },
+      { error: err.message || "Error interno del servidor" },
       { status: 500 },
     );
   }

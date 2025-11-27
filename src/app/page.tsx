@@ -86,48 +86,58 @@ export default function App() {
   const [espacios, setEspacios] = useState<EspacioMapeo[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadApp = async () => {
-      setLoading(true);
+useEffect(() => {
+  const loadApp = async () => {
+    setLoading(true);
 
-      const loadedEspacios = await fetchEspacios();
-      setEspacios(loadedEspacios);
+    const loadedEspacios = await fetchEspacios();
+    setEspacios(loadedEspacios);
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-      if (session) {
-        const profile = await fetchProfileAndRole(session.user.id);
-        if (profile && profile.role !== "guest") {
-          setUser(profile);
-          const loadedRegistros = await fetchRegistros(profile);
-          setRegistros(loadedRegistros);
+    if (session) {
+      const profile = await fetchProfileAndRole(session.user.id);
+      if (profile && profile.role !== "guest") {
+        setUser(profile);
+        
+        // Si es admin, cargar TODOS los registros; si no, cargar solo los del usuario
+        let loadedRegistros: RegistroUso[];
+        if (profile.role === "admin") {
+          const { fetchAllRegistros } = await import("@/components/fetchRegistros");
+          loadedRegistros = await fetchAllRegistros();
         } else {
-          await supabase.auth.signOut();
-          setUser(null);
+          loadedRegistros = await fetchRegistros(profile);
         }
+        
+        setRegistros(loadedRegistros);
       } else {
+        await supabase.auth.signOut();
         setUser(null);
       }
+    } else {
+      setUser(null);
+    }
 
-      setLoading(false);
-    };
+    setLoading(false);
+  };
 
-    loadApp();
+  loadApp();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event) => {
-        if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
-          loadApp();
-        }
-      },
-    );
+  const { data: authListener } = supabase.auth.onAuthStateChange(
+    (event) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+        loadApp();
+      }
+    },
+  );
 
-    return () => {
-      authListener?.subscription.unsubscribe();
-    };
-  }, []);
+  return () => {
+    authListener?.subscription.unsubscribe();
+  };
+}, []);
+
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
