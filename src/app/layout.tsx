@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ThemeToggle from "@/components/ThemeToggle";
+//import Image from "next/image";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,9 +30,16 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground min-h-screen transition-colors duration-500`}
       >
         {/* Barra superior con switch de tema */}
-        <header className="flex justify-end items-center p-4 border-b border-border bg-[var(--card)]">
+       
+         {/*<header className="flex justify-between items-center p-4 border-b border-border bg-[var(--card)]">
+         <Image
+            src="/LOGO FIEC.png"
+            alt="Logo FIEC"
+            width={40}
+            height={40}
+          />
           <ThemeToggle />
-        </header>
+        </header> */} 
 
         {/* Contenido principal */}
         <main className="p-6">{children}</main>
